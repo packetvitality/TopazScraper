@@ -75,12 +75,25 @@ class ProductScrape:
 
     def get_description(self, url, content):
         try:
+            # The description can be broken into multiple tags. Added logic to try and find these scenarios
+            # Manually setting descriptions to None so that conditional statements can be used later. 
+            description = None
+            description2 = None
             tree = html.fromstring(content)
             description = tree.xpath('//*[@id="productPage"]/div[1]/div/div[2]/div[2]/div[2]/p/text()')[0]
+            # description = tree.xpath('//*[@id="productPage"]/div[1]/div/div[2]/div[2]/div[2]/text()') # Tried pulling everythign returned, but it doesn't return the bolded text
             return description
         except:
             try:
                 description = tree.xpath('//*[@id="productPage"]/div[1]/div/div[2]/div[2]/div[2]/text()')[0]
+                # Check for a second description, this occured when there were bold words
+                try:
+                    bold = tree.xpath('//*[@id="productPage"]/div[1]/div/div[2]/div[2]/div[2]/strong/text()')[0]
+                    description2 = tree.xpath('//*[@id="productPage"]/div[1]/div/div[2]/div[2]/div[2]/text()')[1]
+                except:
+                    pass
+                if description2:
+                    description = description + bold + description2
                 return description
             except Exception as e:
                 with open(self.error_file, 'a', encoding=self.encoding) as file:
@@ -122,14 +135,16 @@ class ProductScrape:
                         image_path = image_name
                         break
             
-            if not image_path:
+            if image_path == None:
                 for image in site_images:
+                    image_name = base_url + image.attrib.get('src').lower()
                     if "product" in image_name and "medium" in image_name:
                         image_path = image_name
                         break
             
             if not image_path:
                 for image in site_images:
+                    image_name = base_url + image.attrib.get('src').lower()
                     if "product" in image_name and "small" in image_name:
                         image_path = image_name
                         break
@@ -198,10 +213,10 @@ def main():
     ps = ProductScrape(result_file, error_file)
 
     # Pull URL's via sitemap
-    urls = ps.get_sitemap_urls(sitemap) 
+    # urls = ps.get_sitemap_urls(sitemap) 
 
     # Pull URL's from OWASP ZAP Spider Output File
-    # urls = ps.get_spider_urls(zap_output)
+    urls = ps.get_spider_urls(zap_output)
 
     ps.get_page_info(urls)
 
