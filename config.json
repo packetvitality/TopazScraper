@@ -1,0 +1,6 @@
+{
+    "sitemap": "https://website.com/sitemap.xml",
+    "zap_output" : "C:\\path\\zap_crawl.csv",
+    "result_file": "C:\\path\\results.csv",
+    "error_file": "C:\\path\\errors.csv"
+    }
