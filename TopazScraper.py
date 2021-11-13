@@ -125,30 +125,29 @@ class ProductScrape:
         # Tries to grab the largest product image available.
         try:
             base_url = "/".join(url.split("/")[0:3]) # Storing base url like https://site.com
-            image_path = None
+            image_path_set = set()
             tree = html.fromstring(content)
             site_images = tree.xpath('//img')
             for image in site_images:
                 image_name = base_url + image.attrib.get('src').lower()
                 if "product" in image_name and "large" in image_name:
                     if "large" in image_name:
-                        image_path = image_name
-                        break
+                        image_path_set.add(image_name)
             
-            if image_path == None:
+            if not image_path_set:
                 for image in site_images:
                     image_name = base_url + image.attrib.get('src').lower()
                     if "product" in image_name and "medium" in image_name:
-                        image_path = image_name
-                        break
+                        image_path_set.add(image_name)
             
-            if not image_path:
+            if not image_path_set:
                 for image in site_images:
                     image_name = base_url + image.attrib.get('src').lower()
                     if "product" in image_name and "small" in image_name:
-                        image_path = image_name
-                        break
-            return image_path
+                        image_path_set.add(image_name)
+            
+            all_images = ",".join(image_path_set)
+            return all_images
 
         except Exception as e:
             with open(self.error_file, 'a', encoding=self.encoding) as file:
