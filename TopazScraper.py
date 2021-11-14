@@ -1,9 +1,9 @@
 
 from tqdm import tqdm
-import openpyxl
+# import openpyxl
 from lxml import html
 import requests
-import pandas
+# import pandas
 
 import xml.etree.ElementTree as ET
 from time import sleep
@@ -58,7 +58,7 @@ class ProductScrape:
     def get_sku(self, url,content):
         try:
             tree = html.fromstring(content)
-            sku = tree.xpath('//span[@class="value"]/text()')[0].lower() # sku is used in other comparisons, so force it to lower case
+            sku = tree.xpath('//span[@class="value"]/text()')[0] # sku is used in other comparisons, so force it to lower case
             return sku
         except Exception as e:
             with open(self.error_file, 'a', encoding=self.encoding) as file:
@@ -134,6 +134,7 @@ class ProductScrape:
             image_path_set = set()
             tree = html.fromstring(content)
             site_images = tree.xpath('//img')
+            sku = sku.lower() # making sure comparisons don't fail due to case
             for image in site_images:
                 image_name = base_url + image.attrib.get('src').lower()
                 if "product" in image_name and "large" in image_name and sku in image_name:
@@ -183,8 +184,6 @@ class ProductScrape:
         Requests content from URL's and isolates various product information on the page.
         Product information is written to a CSV file.
         """
-
-
         # Create Column Names for Result File
         with open(self.results_file, 'w', newline='', encoding=self.encoding) as file:
             fields = ['URL', 'SKU', 'TITLE', 'DESCRIPTION', 'UPC', 'IMAGE_PATH(s)'] 
