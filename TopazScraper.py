@@ -196,7 +196,7 @@ class ProductScrape:
                 
                 # Isolated page info
                 sku = self.get_sku(url, r.content)
-                title = "Topaz" + " " + sku + " " + self.get_title(url, r.content)
+                title = "Topaz" + " " + sku + " - " + self.get_title(url, r.content)
                 description = self.get_description(url, r.content)
                 upc = self.get_upc(url, r.content)
                 image_path = self.get_image(url, r.content, sku)
