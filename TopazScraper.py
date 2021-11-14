@@ -1,12 +1,18 @@
+
+from tqdm import tqdm
+import openpyxl
 from lxml import html
 import requests
+import pandas
+
 import xml.etree.ElementTree as ET
 from time import sleep
-from tqdm import tqdm
 import os
 import csv
 import re
 import json
+
+
 
 class ProductScrape:
     def __init__(self, result_file, error_file):
@@ -52,7 +58,7 @@ class ProductScrape:
     def get_sku(self, url,content):
         try:
             tree = html.fromstring(content)
-            sku = tree.xpath('//span[@class="value"]/text()')[0]
+            sku = tree.xpath('//span[@class="value"]/text()')[0].lower() # sku is used in other comparisons, so force it to lower case
             return sku
         except Exception as e:
             with open(self.error_file, 'a', encoding=self.encoding) as file:
@@ -121,7 +127,7 @@ class ProductScrape:
                 file.write("\n")
             return None
 
-    def get_image(self, url, content):
+    def get_image(self, url, content, sku):
         # Tries to grab the largest product image available.
         try:
             base_url = "/".join(url.split("/")[0:3]) # Storing base url like https://site.com
@@ -130,20 +136,20 @@ class ProductScrape:
             site_images = tree.xpath('//img')
             for image in site_images:
                 image_name = base_url + image.attrib.get('src').lower()
-                if "product" in image_name and "large" in image_name:
+                if "product" in image_name and "large" in image_name and sku in image_name:
                     if "large" in image_name:
                         image_path_set.add(image_name)
             
             if not image_path_set:
                 for image in site_images:
                     image_name = base_url + image.attrib.get('src').lower()
-                    if "product" in image_name and "medium" in image_name:
+                    if "product" in image_name and "medium" in image_name and sku in image_name:
                         image_path_set.add(image_name)
             
             if not image_path_set:
                 for image in site_images:
                     image_name = base_url + image.attrib.get('src').lower()
-                    if "product" in image_name and "small" in image_name:
+                    if "product" in image_name and "small" in image_name and sku in image_name:
                         image_path_set.add(image_name)
             
             all_images = ",".join(image_path_set)
@@ -156,11 +162,28 @@ class ProductScrape:
                 file.write("\n")
             return None
 
-    def get_page_info(self, urls):
+    def get_pricing(self, pricing_sheet):
+        """
+        Work in Progress
+        """
+        try:
+            # load excel with its path
+            file = "path"
+            excel_data_df = pandas.read_excel(file)
+            # t = excel_data_df.to_dict()
+            t = excel_data_df.to_csv(index=False)
+            for row in t:
+                print(row)
+
+        except:
+            pass
+
+    def get_page_info(self, urls, Price_Sheet=None):
         """
         Requests content from URL's and isolates various product information on the page.
         Product information is written to a CSV file.
         """
+
 
         # Create Column Names for Result File
         with open(self.results_file, 'w', newline='', encoding=self.encoding) as file:
@@ -174,13 +197,16 @@ class ProductScrape:
                 
                 # Isolated page info
                 sku = self.get_sku(url, r.content)
-                title = self.get_title(url, r.content)
+                title = "Topaz" + " " + sku + " " + self.get_title(url, r.content)
                 description = self.get_description(url, r.content)
                 upc = self.get_upc(url, r.content)
-                image_path = self.get_image(url, r.content)
+                image_path = self.get_image(url, r.content, sku)
 
                 # Write parsed date to results file
-                result = [url, sku, title, description, upc, image_path]
+                if Price_Sheet:
+                    result = [url, sku, title, description, upc, image_path]
+                else:
+                    result = [url, sku, title, description, upc, image_path]
                 with open(self.results_file, 'a', newline='', encoding=self.encoding) as file:
                     writer = csv.writer(file)
                     writer.writerow(result)
@@ -218,6 +244,7 @@ def main():
     urls = ps.get_spider_urls(zap_output)
 
     ps.get_page_info(urls)
+    # ps.get_pricing("t")
 
 if __name__ == "__main__":
     main()
