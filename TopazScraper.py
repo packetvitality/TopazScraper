@@ -131,7 +131,7 @@ class ProductScrape:
         # Tries to grab the largest product image available.
         try:
             base_url = "/".join(url.split("/")[0:3]) # Storing base url like https://site.com
-            image_path_set = set()
+            image_page_list = []
             tree = html.fromstring(content)
             site_images = tree.xpath('//img')
             sku = sku.lower() # making sure comparisons don't fail due to case
@@ -139,21 +139,24 @@ class ProductScrape:
                 image_name = base_url + image.attrib.get('src').lower()
                 if "product" in image_name and "large" in image_name and sku in image_name:
                     if "large" in image_name:
-                        image_path_set.add(image_name)
+                        if image_name not in image_page_list:
+                            image_page_list.append(image_name)
             
-            if not image_path_set:
+            if not image_page_list:
                 for image in site_images:
                     image_name = base_url + image.attrib.get('src').lower()
                     if "product" in image_name and "medium" in image_name and sku in image_name:
-                        image_path_set.add(image_name)
+                        if image_name not in image_page_list:
+                            image_page_list.append(image_name)
             
-            if not image_path_set:
+            if not image_page_list:
                 for image in site_images:
                     image_name = base_url + image.attrib.get('src').lower()
                     if "product" in image_name and "small" in image_name and sku in image_name:
-                        image_path_set.add(image_name)
+                        if image_name not in image_page_list:
+                            image_page_list.append(image_name)
             
-            all_images = ",".join(image_path_set)
+            all_images = ",".join(image_page_list)
             return all_images
 
         except Exception as e:
