@@ -156,7 +156,8 @@ class ProductScrape:
                         if image_name not in image_page_list:
                             image_page_list.append(image_name)
             
-            all_images = ",".join(image_page_list)
+            all_images = ",".join(sorted(image_page_list))
+            print('\n', all_images)
             return all_images
 
         except Exception as e:
@@ -246,7 +247,7 @@ def main():
     urls = ps.get_spider_urls(zap_output)
 
     ps.get_page_info(urls)
-    # ps.get_pricing("t")
+
 
 if __name__ == "__main__":
     main()
