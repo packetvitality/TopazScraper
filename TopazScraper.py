@@ -30,9 +30,11 @@ class ProductScrape:
             for line in file:
                 if "true" in line:
                     if "sorting" not in line.lower():
-                        url_dirty = line.split(",")[2]
-                        url_clean = url_dirty.split("?")[0]
-                        urls.add(url_clean)
+                        url = line.split(",")[2]
+                        url = url.split("?")[0]
+                        if not url.endswith("/"): # don't add URL's which are a categories for items
+                            urls.add(url)
+                
         return urls
 
     def get_sitemap_urls(self, sitemap):
@@ -47,7 +49,9 @@ class ProductScrape:
 
         for child in root:
             url = child[4].attrib.get('href')
-            urls.add(url)
+            if not url.endswith("/"): # don't add URL's which are a categories for items
+                urls.add(url)
+
         return urls
 
         ## Prob the better way to do it, but need to understand the XML better
@@ -157,7 +161,6 @@ class ProductScrape:
                             image_page_list.append(image_name)
             
             all_images = ",".join(sorted(image_page_list))
-            print('\n', all_images)
             return all_images
 
         except Exception as e:
@@ -183,6 +186,22 @@ class ProductScrape:
         except:
             pass
 
+    def get_category(self, url):
+        try:
+            category_url_list = url.split("/")[:-1] # all but the last element of the url
+            category_url = "/".join(category_url_list) # remake the url
+            r = requests.get(category_url) # pull page content for the category page
+            tree = html.fromstring(r.content)
+            category = tree.xpath('//div[@class="h1-holder"]/h1/text()')[0]
+            return category
+
+        except Exception as e:
+            with open(self.error_file, 'a', encoding=self.encoding) as file:
+                error = f"URL {url} failed to parse the catgegory. {e}"
+                file.write(error)
+                file.write("\n")
+            return None
+        
     def get_page_info(self, urls, Price_Sheet=None):
         """
         Requests content from URL's and isolates various product information on the page.
@@ -190,7 +209,7 @@ class ProductScrape:
         """
         # Create Column Names for Result File
         with open(self.results_file, 'w', newline='', encoding=self.encoding) as file:
-            fields = ['URL', 'SKU', 'TITLE', 'DESCRIPTION', 'UPC', 'IMAGE_PATH(s)'] 
+            fields = ['URL', 'SKU', 'TITLE', 'CATEGORY', 'DESCRIPTION', 'UPC', 'IMAGE_PATH(s)'] 
             writer = csv.writer(file)
             writer.writerow(fields)
         
@@ -204,12 +223,13 @@ class ProductScrape:
                 description = self.get_description(url, r.content)
                 upc = self.get_upc(url, r.content)
                 image_path = self.get_image(url, r.content, sku)
+                category =  self.get_category(url)
 
                 # Write parsed date to results file
                 if Price_Sheet:
-                    result = [url, sku, title, description, upc, image_path]
+                    result = [url, sku, title, category, description, upc, image_path]
                 else:
-                    result = [url, sku, title, description, upc, image_path]
+                    result = [url, sku, title, category, description, upc, image_path]
                 with open(self.results_file, 'a', newline='', encoding=self.encoding) as file:
                     writer = csv.writer(file)
                     writer.writerow(result)
@@ -247,6 +267,7 @@ def main():
     urls = ps.get_spider_urls(zap_output)
 
     ps.get_page_info(urls)
+
 
 
 if __name__ == "__main__":
